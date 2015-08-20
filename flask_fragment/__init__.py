@@ -38,7 +38,8 @@ class Fragment(object):
                 rule = '/_inc/{0}.{1}'.format(mod.name, endpoint)
             else:
                 rule = '/_inc/{0}'.format(endpoint)
-            fragment_view.args_names = list(inspect.getargspec(fragment_view).args)
+            fragment_view_signature = inspect.signature(fragment_view)
+            fragment_view.args_names = fragment_view_signature.parameters
             for arg_name in fragment_view.args_names:
                 rule += '/<{0}>'.format(arg_name)
             mod.add_url_rule(rule, endpoint, fragment_view)
