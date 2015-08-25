@@ -115,4 +115,9 @@ class Fragment(object):
 
 
     def _render(self, url, deferred_view):
-        return jinja2.Markup('<!--# include virtual="{0}" -->'.format(url))
+        if self.app.config.get('FRAGMENT_SSI', False):
+            content = '<!--# include virtual="{0}" -->'.format(url)
+        else:
+            response = deferred_view()
+            content = response.get_data().decode(response.mimetype_params['charset'])
+        return jinja2.Markup(content)
