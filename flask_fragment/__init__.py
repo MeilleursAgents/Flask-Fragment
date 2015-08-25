@@ -2,9 +2,9 @@
 """
     flask.ext.fragment
     ------------------
-    
+
     Flask extension to implement fragment caching.
-    
+
     :copyright: (c) 2013 by Alexey Poryadin.
     :license: MIT, see LICENSE for more details.
 """
@@ -19,38 +19,45 @@ from flask import _app_ctx_stack as stack
 class Fragment(object):
 
     def __init__(self, app=None):
+        self.mod = None
+        self.endpoint = None
+        self.resethandler = None
         self.app = app
         if app is not None:
             self.init_app(app)
 
-
-    def __call__(self, mod, resethandler=None):
+    def __call__(self, mod, endpoint=None, resethandler=None):
         """Decorator to define function as fragment cached view
-        
+
         Args:
             mod: Flask app or blueprint
+            endpoint: Access point
         """
+        self.mod = mod
+        self.endpoint = endpoint
+        self.resethandler = resethandler
+
         def decorator(fragment_view):
-            endpoint = fragment_view.__name__
-            fragment_view.cache_endpoint = endpoint
+            fragment_view_name = fragment_view.__name__
+            fragment_view.cache_endpoint = self.endpoint if self.endpoint else fragment_view_name
             fragment_view.cache_resethandler = resethandler
-            if isinstance(mod, Blueprint):
-                rule = '/_inc/{0}.{1}'.format(mod.name, endpoint)
+            if self.endpoint:
+                rule = '/{0}'.format(self.endpoint)
+            elif isinstance(mod, Blueprint):
+                rule = '/{0}.{1}'.format(mod.name, fragment_view_name)
             else:
-                rule = '/_inc/{0}'.format(endpoint)
+                rule = '/{0}'.format(fragment_view_name)
             fragment_view_signature = inspect.signature(fragment_view)
             fragment_view.args_names = fragment_view_signature.parameters
             for arg_name in fragment_view.args_names:
                 rule += '/<{0}>'.format(arg_name)
-            mod.add_url_rule(rule, endpoint, fragment_view)
+            mod.add_url_rule(rule, fragment_view_name, fragment_view)
             return fragment_view
         return decorator
-    
 
     def init_app(self, app):
         self.app = app
         self.app.context_processor(lambda: {'fragment': self._fragment_tmpl_func})
-    
     
     def resethandler(self, fragment_view):
         """Decorator sets reset fragment cache handler for `fragment_view` function."""
@@ -58,7 +65,6 @@ class Fragment(object):
             fragment_view.cache_resethandler = handler
             return handler
         return decorator        
-
 
     def reset(self, target, *args, **kwargs):
         """Resets cache for fragment cached view
@@ -95,7 +101,6 @@ class Fragment(object):
         """
         raise NotImplementedError('Need to look around ngx_cache_purge')
 
-
     def _fragment_tmpl_func(self, endpoint, *args, **kwargs):
         """Template context function that renders fragment cached view.
         
@@ -112,7 +117,6 @@ class Fragment(object):
             url = flask.url_for(endpoint, **kwargs)
             return self._render(url, partial(func, **kwargs))
         raise ValueError('Not found view for endpoint "{0}"'.format(endpoint))
-
 
     def _render(self, url, deferred_view):
         if self.app.config.get('FRAGMENT_SSI', False):
