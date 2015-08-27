@@ -1,4 +1,4 @@
-version = '0.1-dev'
+version = '0.2'
 from setuptools import setup, find_packages
 
 setup(
@@ -11,6 +11,5 @@ setup(
     packages = ['flask_fragment'],
     install_requires = [
         'Flask',
-        # 'python-binary-memcached' Need lastest pip install git+https://github.com/jaysonsantos/python-binary-memcached.git
     ],
 )
