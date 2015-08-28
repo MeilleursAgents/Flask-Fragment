@@ -20,29 +20,29 @@ class Fragment(object):
 
     def __init__(self, app=None):
         self.mod = None
-        self.endpoint = None
+        self.endpoint_url = None
         self.resethandler = None
         self.app = app
         if app is not None:
             self.init_app(app)
 
-    def __call__(self, mod, endpoint=None, resethandler=None):
+    def __call__(self, mod, endpoint_url=None, resethandler=None):
         """Decorator to define function as fragment cached view
 
         Args:
             mod: Flask app or blueprint
-            endpoint: Access point
+            endpoint_url: Access point
         """
         self.mod = mod
-        self.endpoint = endpoint
+        self.endpoint_url = endpoint_url
         self.resethandler = resethandler
 
         def decorator(fragment_view):
             fragment_view_name = fragment_view.__name__
-            fragment_view.cache_endpoint = self.endpoint if self.endpoint else fragment_view_name
+            fragment_view.cache_endpoint_url = self.endpoint_url if self.endpoint_url else fragment_view_name
             fragment_view.cache_resethandler = resethandler
-            if self.endpoint:
-                rule = '/{0}'.format(self.endpoint)
+            if self.endpoint_url:
+                rule = '/{0}'.format(self.endpoint_url)
             elif isinstance(mod, Blueprint):
                 rule = '/{0}.{1}'.format(mod.name, fragment_view_name)
             else:
@@ -83,7 +83,7 @@ class Fragment(object):
             try:
                 for N in range(0, len(args)):
                     kwargs[fragment_view.args_names[N]] = args[N]
-                url = flask.url_for(fragment_view.cache_endpoint, **kwargs)
+                url = flask.url_for(fragment_view.cache_endpoint_url, **kwargs)
             except Exception as exc:
                 raise RuntimeError('Cannot reset cache for "{0}",'
                     ' resethandler is not set and default handler canot'
